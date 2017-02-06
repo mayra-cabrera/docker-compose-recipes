@@ -1,0 +1,33 @@
+version: '2'
+
+services:
+  mariadb:
+    image: bitnami/mariadb:latest
+
+  redis:
+    image: redis:latest
+
+  myapp:
+    tty: true
+    image: bitnami/rails:latest
+    environment:
+    depends_on:
+      - mariadb
+      - redis
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+
+  sidekiq:
+    build: .
+    command: bundle exec sidekiq
+    depends_on:
+      - mariadb
+      - redis
+    volumes:
+      - .:/app
+    env_file:
+      - .env
