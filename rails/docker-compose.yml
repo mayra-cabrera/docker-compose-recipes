@@ -1,0 +1,61 @@
+version: "2"
+
+volumes:
+  postgresql-data:
+    driver: local
+  gems:
+    driver: local
+
+services:
+  db:
+    image: postgres:9.6
+    ports:
+      - 5433:5432
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+      - .:/tmp
+    environment:
+      LC_ALL: C.UTF-8
+      POSTGRES_PASSWORD: 12341234
+
+  app: &app
+   image: my_image_name:latest 
+   build:
+     context: .
+     dockerfile: dev.Dockerfile
+   working_dir: /usr/src/app
+   volumes:
+     - .:/usr/src/app
+     - gems:/usr/local/bundle
+   stdin_open: true
+   tty: true
+   links:
+     - db
+   depends_on:
+     - db
+
+  web: 
+    <<: *app
+    command: rails server -b 0.0.0.0 -p 3000 -P /tmp/rails.pid
+    working_dir: /usr/src/app
+    volumes:
+      - .:/usr/src/app
+      - gems:/usr/local/bundle
+    ports:
+      - 3000:3000
+    environment: &app_env
+      DATABASE_URL: "postgres://postgres:12341234@db:5432/database_dev"
+      RAILS_ENV: development
+      RACK_ENV: development
+    env_file:
+      - dev.env
+
+  test:
+    <<: *app
+    environment:
+      DATABASE_URL: "postgres://postgres:12341234@db:5432/databse_test"
+      RAILS_ENV: test
+      RACK_ENV: test
+    env_file:
+      - test.env
+
